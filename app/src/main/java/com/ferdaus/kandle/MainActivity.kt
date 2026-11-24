@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.HapticFeedbackConstants
+import android.view.KeyEvent
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.PermissionRequest
@@ -95,12 +96,19 @@ class MainActivity : ComponentActivity() {
         bottom.setOnItemSelectedListener { item ->
             bottom.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             when (item.itemId) {
-                R.id.tab_chart -> js("window.__kandleNative && window.__kandleNative.key('Escape')")
-                R.id.tab_watchlist -> js("window.__kandleNative && window.__kandleNative.key('w', true)")
-                R.id.tab_scripts -> js("window.__kandleNative && window.__kandleNative.key('s', true)")
-                R.id.tab_alerts -> js(
-                    "window.__kandleNative && (window.__kandleNative.click('alerts') || window.__kandleNative.key('a', true))",
-                )
+                R.id.tab_chart -> {
+                    sendKey(KeyEvent.KEYCODE_ESCAPE, alt = false)
+                    js("window.scrollTo(0, 0)")
+                }
+                R.id.tab_watchlist -> {
+                    js("window.__kandleNative && window.__kandleNative.click('watchlist')")
+                    sendKey(KeyEvent.KEYCODE_W, alt = true)
+                }
+                R.id.tab_scripts -> {
+                    js("window.__kandleNative && window.__kandleNative.click('scripts')")
+                    sendKey(KeyEvent.KEYCODE_S, alt = true)
+                }
+                R.id.tab_alerts -> js("window.__kandleNative && window.__kandleNative.click('alerts')")
                 R.id.tab_more -> showMore()
             }
             true
@@ -210,6 +218,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun js(code: String) = webView.evaluateJavascript(code, null)
+
+    private fun sendKey(keyCode: Int, alt: Boolean) {
+        val meta = if (alt) KeyEvent.META_ALT_ON else 0
+        webView.requestFocus()
+        webView.dispatchKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_DOWN, keyCode, 0, meta))
+        webView.dispatchKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_UP, keyCode, 0, meta))
+    }
 
     private fun openExternal(url: String) {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
