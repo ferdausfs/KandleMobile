@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Kandle" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.Kandle" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowSplashScreenBackground">@color/kandle_bg</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@color/kandle_bg</item>
-        <item name="android:statusBarColor">@color/kandle_bg</item>
-        <item name="android:navigationBarColor">@color/kandle_bg</item>
+        <item name="android:statusBarColor">@color/kandle_surface</item>
+        <item name="android:navigationBarColor">@color/kandle_surface</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="colorPrimary">@color/kandle_accent</item>
+        <item name="colorOnPrimary">#04140F</item>
+        <item name="colorSurface">@color/kandle_surface</item>
+        <item name="colorOnSurface">@color/kandle_text</item>
+    </style>
+
+    <style name="KandleNavIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">#1F14C7A5</item>
     </style>
 </resources>

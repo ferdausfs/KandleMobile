@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/tab_chart"
+        android:icon="@drawable/ic_tab_chart"
+        android:title="@string/tab_chart" />
+    <item
+        android:id="@+id/tab_watchlist"
+        android:icon="@drawable/ic_tab_watchlist"
+        android:title="@string/tab_watchlist" />
+    <item
+        android:id="@+id/tab_scripts"
+        android:icon="@drawable/ic_tab_scripts"
+        android:title="@string/tab_scripts" />
+    <item
+        android:id="@+id/tab_alerts"
+        android:icon="@drawable/ic_tab_alerts"
+        android:title="@string/tab_alerts" />
+    <item
+        android:id="@+id/tab_more"
+        android:icon="@drawable/ic_tab_more"
+        android:title="@string/tab_more" />
+</menu>

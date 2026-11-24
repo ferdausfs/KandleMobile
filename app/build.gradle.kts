@@ -63,5 +63,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.webkit)
+    implementation(libs.material)
+    implementation(libs.swiperefresh)
     testImplementation(libs.junit)
 }

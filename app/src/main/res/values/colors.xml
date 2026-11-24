@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="kandle_bg">#0B0F14</color>
+    <color name="kandle_surface">#121821</color>
+    <color name="kandle_text">#E6EDF5</color>
+    <color name="kandle_accent">#14C7A5</color>
     <color name="ic_launcher_background">#0B0F14</color>
+    <color name="kandle_nav">#8A99AD</color>
+    <color name="kandle_nav_selected">#14C7A5</color>
 </resources>

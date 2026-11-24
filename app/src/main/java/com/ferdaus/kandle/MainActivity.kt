@@ -1,16 +1,13 @@
 package com.ferdaus.kandle
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.View
-import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
@@ -19,24 +16,28 @@ import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
+import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Button
-import android.widget.FrameLayout
-import android.widget.LinearLayout
 import android.widget.ProgressBar
-import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.webkit.WebViewAssetLoader
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
     private lateinit var progress: ProgressBar
-    private lateinit var errorView: LinearLayout
+    private lateinit var refresh: SwipeRefreshLayout
+    private lateinit var bottom: BottomNavigationView
+    private lateinit var toolbar: MaterialToolbar
     private var fileCallback: ValueCallback<Array<Uri>>? = null
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -48,8 +49,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        buildViews()
+        webView = findViewById(R.id.webview)
+        progress = findViewById(R.id.progress)
+        refresh = findViewById(R.id.refresh)
+        bottom = findViewById(R.id.bottom)
+        toolbar = findViewById(R.id.toolbar)
+        wireChrome()
         requestNotificationPermission()
         setupWebView()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -59,54 +66,47 @@ class MainActivity : ComponentActivity() {
         })
     }
 
-    private fun buildViews() {
-        val root = FrameLayout(this).apply { setBackgroundColor(BG) }
-        webView = WebView(this).apply { setBackgroundColor(BG) }
-        progress = ProgressBar(this).apply {
-            visibility = View.GONE
-            isIndeterminate = true
-        }
-        errorView = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            visibility = View.GONE
-            setBackgroundColor(BG)
-            setPadding(48, 48, 48, 48)
-        }
-        val errorTitle = TextView(this).apply {
-            text = getString(R.string.error_title)
-            setTextColor(Color.WHITE)
-            textSize = 18f
-        }
-        val errorBody = TextView(this).apply {
-            text = getString(R.string.error_body)
-            setTextColor(Color.parseColor("#8A99AD"))
-            textSize = 13f
-            setPadding(0, 12, 0, 24)
-        }
-        val retry = Button(this).apply {
-            text = getString(R.string.retry)
-            setOnClickListener {
-                errorView.visibility = View.GONE
-                setupWebView()
+    private fun wireChrome() {
+        toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_reload -> {
+                    webView.reload()
+                    true
+                }
+                R.id.action_share -> {
+                    shareCurrent()
+                    true
+                }
+                R.id.action_browser -> {
+                    openExternal("https://kernel-hunter.github.io/kandle/")
+                    true
+                }
+                R.id.action_clear_cache -> {
+                    clearCache()
+                    true
+                }
+                R.id.action_about -> {
+                    showAbout()
+                    true
+                }
+                else -> false
             }
         }
-        errorView.addView(errorTitle)
-        errorView.addView(errorBody)
-        errorView.addView(retry)
-        root.addView(
-            webView,
-            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
-        )
-        root.addView(
-            progress,
-            FrameLayout.LayoutParams(96, 96, Gravity.CENTER),
-        )
-        root.addView(
-            errorView,
-            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
-        )
-        setContentView(root)
+        bottom.setOnItemSelectedListener { item ->
+            bottom.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            when (item.itemId) {
+                R.id.tab_chart -> js("window.__kandleNative && window.__kandleNative.key('Escape')")
+                R.id.tab_watchlist -> js("window.__kandleNative && window.__kandleNative.key('w', true)")
+                R.id.tab_scripts -> js("window.__kandleNative && window.__kandleNative.key('s', true)")
+                R.id.tab_alerts -> js(
+                    "window.__kandleNative && (window.__kandleNative.click('alerts') || window.__kandleNative.key('a', true))",
+                )
+                R.id.tab_more -> showMore()
+            }
+            true
+        }
+        refresh.setColorSchemeColors(ContextCompat.getColor(this, R.color.kandle_accent))
+        refresh.setOnRefreshListener { webView.reload() }
     }
 
     private val assetLoader by lazy {
@@ -138,23 +138,29 @@ class MainActivity : ComponentActivity() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url.toString()
                 if (UrlPolicy.isInternal(url)) return false
-                if (UrlPolicy.isExternal(url)) {
-                    runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                }
+                if (UrlPolicy.isExternal(url)) openExternal(url)
                 return true
             }
 
             override fun onPageFinished(view: WebView, url: String) {
+                injectHelper()
                 progress.visibility = View.GONE
+                refresh.isRefreshing = false
             }
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                if (request.isForMainFrame) showError()
+                if (request.isForMainFrame) {
+                    progress.visibility = View.GONE
+                    refresh.isRefreshing = false
+                    showError(error.description?.toString().orEmpty())
+                }
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
-                progress.visibility = if (newProgress < 100) View.VISIBLE else View.GONE
+                progress.isIndeterminate = false
+                progress.progress = newProgress
+                progress.visibility = if (newProgress in 1..99) View.VISIBLE else View.GONE
             }
 
             override fun onShowFileChooser(
@@ -174,15 +180,88 @@ class MainActivity : ComponentActivity() {
                 request.grant(request.resources)
             }
         }
-        webView.setDownloadListener { url, _, _, _, _ ->
-            runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-        }
+        webView.setDownloadListener { url, _, _, _, _ -> openExternal(url) }
         webView.loadUrl(UrlPolicy.BASE + "index.html")
     }
 
-    private fun showError() {
-        progress.visibility = View.GONE
-        errorView.visibility = View.VISIBLE
+    private fun injectHelper() {
+        val script = """
+            (function () {
+              if (window.__kandleNative) return;
+              window.__kandleNative = {
+                key: function (k, alt) {
+                  var event = new KeyboardEvent('keydown', { key: k, altKey: !!alt, bubbles: true, cancelable: true });
+                  document.dispatchEvent(event);
+                  window.dispatchEvent(event);
+                },
+                click: function (text) {
+                  var target = String(text).toLowerCase();
+                  var els = Array.prototype.slice.call(document.querySelectorAll('button,[role="button"],a'));
+                  for (var i = 0; i < els.length; i++) {
+                    var label = ((els[i].textContent || '') + ' ' + (els[i].getAttribute('aria-label') || '')).trim().toLowerCase();
+                    if (label === target || label.indexOf(target) === 0) { els[i].click(); return true; }
+                  }
+                  return false;
+                }
+              };
+            })();
+        """.trimIndent()
+        webView.evaluateJavascript(script, null)
+    }
+
+    private fun js(code: String) = webView.evaluateJavascript(code, null)
+
+    private fun openExternal(url: String) {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+    }
+
+    private fun shareCurrent() {
+        js(
+            "(function(){try{Promise.resolve(window.kandle && window.kandle.share ? window.kandle.share() : location.href)" +
+                ".then(function(u){AndroidNative.share(u||location.href);});}catch(e){AndroidNative.share(location.href);}})()",
+        )
+    }
+
+    private fun clearCache() {
+        WebStorage.getInstance().deleteAllData()
+        CookieManager.getInstance().removeAllCookies(null)
+        CookieManager.getInstance().flush()
+        Toast.makeText(this, R.string.clear_cache_done, Toast.LENGTH_SHORT).show()
+        webView.reload()
+    }
+
+    private fun showAbout() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.about)
+            .setMessage(R.string.about_body)
+            .setPositiveButton(R.string.close, null)
+            .show()
+    }
+
+    private fun showMore() {
+        val items = arrayOf("Reload", "Share chart", "Open in browser", "Clear cache", "About")
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.more_title)
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> webView.reload()
+                    1 -> shareCurrent()
+                    2 -> openExternal("https://kernel-hunter.github.io/kandle/")
+                    3 -> clearCache()
+                    4 -> showAbout()
+                }
+            }
+            .show()
+    }
+
+    private fun showError(message: String) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.error_title)
+            .setMessage(if (message.isBlank()) getString(R.string.error_body) else message)
+            .setCancelable(false)
+            .setPositiveButton(R.string.retry) { _, _ -> setupWebView() }
+            .setNegativeButton(R.string.close) { _, _ -> finish() }
+            .show()
     }
 
     private fun requestNotificationPermission() {
@@ -199,9 +278,16 @@ class MainActivity : ComponentActivity() {
         fun notify(title: String, body: String) {
             Notifications.show(this@MainActivity, title, body)
         }
-    }
 
-    companion object {
-        private val BG = Color.rgb(11, 15, 20)
+        @android.webkit.JavascriptInterface
+        fun share(url: String) {
+            runOnUiThread {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, url)
+                }
+                startActivity(Intent.createChooser(intent, getString(R.string.share_chart)))
+            }
+        }
     }
 }
