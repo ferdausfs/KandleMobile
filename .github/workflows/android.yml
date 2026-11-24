@@ -1,0 +1,66 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      KEYSTORE_B64: ${{ secrets.KANDLE_KEYSTORE_BASE64 }}
+      KANDLE_STORE_PASSWORD: ${{ secrets.KANDLE_STORE_PASSWORD }}
+      KANDLE_KEY_ALIAS: ${{ secrets.KANDLE_KEY_ALIAS }}
+      KANDLE_KEY_PASSWORD: ${{ secrets.KANDLE_KEY_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v3
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Unit tests
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Build debug APK
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kandle-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Decode release keystore
+        if: env.KEYSTORE_B64 != ''
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/kandle-release.jks"
+          echo "KANDLE_KEYSTORE=$RUNNER_TEMP/kandle-release.jks" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        if: env.KEYSTORE_B64 != ''
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Upload release APK
+        if: env.KEYSTORE_B64 != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: kandle-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

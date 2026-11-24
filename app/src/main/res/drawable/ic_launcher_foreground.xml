@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Own Kandle mark: two rising candles and a K stroke, no upstream assets. -->
+    <path
+        android:fillColor="#14C7A5"
+        android:pathData="M34,58h10v24h-10z" />
+    <path
+        android:fillColor="#14C7A5"
+        android:pathData="M38,48h2v42h-2z" />
+    <path
+        android:fillColor="#2ED47A"
+        android:pathData="M50,42h10v40h-10z" />
+    <path
+        android:fillColor="#2ED47A"
+        android:pathData="M54,34h2v52h-2z" />
+    <path
+        android:fillColor="#E6EDF5"
+        android:pathData="M66,34h4v18l14,-18h6l-16,20l16,22h-6l-14,-18v18h-4z" />
+    <path
+        android:fillColor="#232D3B"
+        android:pathData="M24,86h60v3h-60z" />
+</vector>

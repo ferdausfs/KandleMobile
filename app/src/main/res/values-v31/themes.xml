@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Kandle" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@color/kandle_bg</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/kandle_bg</item>
+        <item name="android:statusBarColor">@color/kandle_bg</item>
+        <item name="android:navigationBarColor">@color/kandle_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kandle</string>
+    <string name="error_title">Kandle could not start</string>
+    <string name="error_body">The bundled chart app failed to load. Check that the app data was installed correctly, then retry.</string>
+    <string name="retry">Retry</string>
+</resources>
