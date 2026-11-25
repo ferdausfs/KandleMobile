@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="kandle_bg">#0F1115</color>
+    <color name="kandle_panel">#151920</color>
+    <color name="kandle_panel_2">#1B2028</color>
+    <color name="kandle_border">#252B34</color>
+    <color name="kandle_text">#D8DCE2</color>
+    <color name="kandle_muted">#8A929E</color>
+    <color name="kandle_accent">#F0B45C</color>
+    <color name="kandle_on_accent">#1A1204</color>
+    <color name="kandle_accent_soft">#1FF0B45C</color>
+    <color name="kandle_danger">#F23645</color>
+    <color name="kandle_nav">#8A929E</color>
+    <color name="kandle_nav_selected">#F0B45C</color>
+</resources>

@@ -14,10 +14,12 @@
   }
 
   NativeNotification.prototype.close = function () {};
-  NativeNotification.permission = 'granted';
+  NativeNotification.permission =
+    typeof bridge.canNotify === 'function' && bridge.canNotify() ? 'granted' : 'denied';
   NativeNotification.requestPermission = function (callback) {
-    if (typeof callback === 'function') callback('granted');
-    return Promise.resolve('granted');
+    var state = NativeNotification.permission;
+    if (typeof callback === 'function') callback(state);
+    return Promise.resolve(state);
   };
 
   window.Notification = NativeNotification;

@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/kandle_bg"
     android:orientation="vertical">
+
+    <View
+        android:id="@+id/status_spacer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/kandle_panel" />
 
     <ProgressBar
         android:id="@+id/progress"
@@ -28,14 +35,36 @@
             android:background="@color/kandle_bg" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottom"
+    <FrameLayout
+        android:id="@+id/nav_host"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/kandle_surface"
-        app:itemActiveIndicatorStyle="@style/KandleNavIndicator"
-        app:itemIconTint="@color/kandle_nav_tint"
-        app:itemTextColor="@color/kandle_nav_tint"
-        app:labelVisibilityMode="labeled"
-        app:menu="@menu/bottom_menu" />
+        android:background="@color/kandle_panel">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/kandle_border" />
+
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottom"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="@color/kandle_panel"
+            app:itemActiveIndicatorStyle="@style/KandleNavIndicator"
+            app:itemIconTint="@color/kandle_nav_tint"
+            app:itemTextColor="@color/kandle_nav_tint"
+            app:labelVisibilityMode="labeled"
+            app:menu="@menu/bottom_menu" />
+
+        <View
+            android:id="@+id/nav_tick"
+            android:layout_width="20dp"
+            android:layout_height="3dp"
+            android:layout_gravity="top|start"
+            android:layout_marginStart="6dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_nav_tick"
+            android:importantForAccessibility="no" />
+    </FrameLayout>
 </LinearLayout>

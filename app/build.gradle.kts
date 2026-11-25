@@ -18,8 +18,8 @@ android {
         applicationId = "com.ferdaus.kandle"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.11.0-android.1"
+        versionCode = 4
+        versionName = "0.11.0-android.4"
     }
 
     signingConfigs {

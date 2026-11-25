@@ -2,17 +2,21 @@
 <resources>
     <style name="Theme.Kandle" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">@color/kandle_bg</item>
-        <item name="android:statusBarColor">@color/kandle_surface</item>
-        <item name="android:navigationBarColor">@color/kandle_surface</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
         <item name="colorPrimary">@color/kandle_accent</item>
-        <item name="colorOnPrimary">#04140F</item>
-        <item name="colorSurface">@color/kandle_surface</item>
+        <item name="colorOnPrimary">@color/kandle_on_accent</item>
+        <item name="colorSurface">@color/kandle_panel</item>
         <item name="colorOnSurface">@color/kandle_text</item>
+        <item name="colorOutline">@color/kandle_border</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
     </style>
 
     <style name="KandleNavIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
-        <item name="android:color">#1F14C7A5</item>
+        <item name="android:color">@android:color/transparent</item>
     </style>
 </resources>

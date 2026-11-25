@@ -15,7 +15,17 @@ object Notifications {
 
     private const val CHANNEL = "kandle_alerts"
 
-    fun show(context: Context, title: String, body: String) {
+    fun enabled(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
+        }
+        return NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+
+    fun show(context: Context, title: String, body: String): Boolean {
         val manager = NotificationManagerCompat.from(context)
         manager.createNotificationChannel(
             NotificationChannelCompat.Builder(CHANNEL, NotificationManagerCompat.IMPORTANCE_HIGH)
@@ -27,8 +37,9 @@ object Notifications {
             ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
         ) {
-            return
+            return false
         }
+        if (!manager.areNotificationsEnabled()) return false
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
         val pending = launch?.let {
             PendingIntent.getActivity(
@@ -46,6 +57,9 @@ object Notifications {
             .setAutoCancel(true)
             .setContentIntent(pending)
             .build()
-        runCatching { manager.notify((System.currentTimeMillis() % Int.MAX_VALUE).toInt(), notification) }
+        return runCatching {
+            manager.notify((System.currentTimeMillis() % Int.MAX_VALUE).toInt(), notification)
+            true
+        }.getOrDefault(false)
     }
 }
