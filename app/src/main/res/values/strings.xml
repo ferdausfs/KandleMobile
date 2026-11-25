@@ -6,6 +6,7 @@
     <string name="retry">Retry</string>
     <string name="tab_chart">Chart</string>
     <string name="tab_watchlist">Watchlist</string>
+    <string name="tab_explore">Explore</string>
     <string name="tab_scripts">Scripts</string>
     <string name="tab_alerts">Alerts</string>
     <string name="tab_more">More</string>

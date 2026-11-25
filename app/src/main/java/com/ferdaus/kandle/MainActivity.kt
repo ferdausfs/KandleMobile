@@ -28,7 +28,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.webkit.WebViewAssetLoader
-import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
@@ -38,7 +37,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var progress: ProgressBar
     private lateinit var refresh: SwipeRefreshLayout
     private lateinit var bottom: BottomNavigationView
-    private lateinit var toolbar: MaterialToolbar
     private var fileCallback: ValueCallback<Array<Uri>>? = null
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -56,7 +54,6 @@ class MainActivity : ComponentActivity() {
         progress = findViewById(R.id.progress)
         refresh = findViewById(R.id.refresh)
         bottom = findViewById(R.id.bottom)
-        toolbar = findViewById(R.id.toolbar)
         wireChrome()
         requestNotificationPermission()
         setupWebView()
@@ -68,31 +65,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun wireChrome() {
-        toolbar.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.action_reload -> {
-                    webView.reload()
-                    true
-                }
-                R.id.action_share -> {
-                    shareCurrent()
-                    true
-                }
-                R.id.action_browser -> {
-                    openExternal("https://kernel-hunter.github.io/kandle/")
-                    true
-                }
-                R.id.action_clear_cache -> {
-                    clearCache()
-                    true
-                }
-                R.id.action_about -> {
-                    showAbout()
-                    true
-                }
-                else -> false
-            }
-        }
         bottom.setOnItemSelectedListener { item ->
             bottom.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             when (item.itemId) {
@@ -108,7 +80,7 @@ class MainActivity : ComponentActivity() {
                     js("window.__kandleNative && window.__kandleNative.click('scripts')")
                     sendKey(KeyEvent.KEYCODE_S, alt = true)
                 }
-                R.id.tab_alerts -> js("window.__kandleNative && window.__kandleNative.click('alerts')")
+                R.id.tab_explore -> js("document.querySelector('.symbol-btn') && document.querySelector('.symbol-btn').click()")
                 R.id.tab_more -> showMore()
             }
             true
@@ -254,7 +226,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showMore() {
-        val items = arrayOf("Reload", "Share chart", "Open in browser", "Clear cache", "About")
+        val items = arrayOf("Reload", "Share chart", "Open in browser", "Light / dark theme", "Clear cache", "About")
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.more_title)
             .setItems(items) { _, which ->
@@ -262,8 +234,9 @@ class MainActivity : ComponentActivity() {
                     0 -> webView.reload()
                     1 -> shareCurrent()
                     2 -> openExternal("https://kernel-hunter.github.io/kandle/")
-                    3 -> clearCache()
-                    4 -> showAbout()
+                    3 -> sendKey(KeyEvent.KEYCODE_L, alt = true)
+                    4 -> clearCache()
+                    5 -> showAbout()
                 }
             }
             .show()
