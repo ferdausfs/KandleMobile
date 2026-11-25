@@ -62,7 +62,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         webView = findViewById(R.id.webview)
         progress = findViewById(R.id.progress)
         refresh = findViewById(R.id.refresh)
@@ -73,17 +72,39 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root)) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             statusSpacer.layoutParams.height = bars.top
             statusSpacer.requestLayout()
-            navHost.setPadding(0, 0, 0, bars.bottom)
+            if (ime.bottom > 0) {
+                bottom.visibility = View.GONE
+                navHost.setPadding(0, 0, 0, 0)
+                refresh.setPadding(0, 0, 0, ime.bottom)
+            } else {
+                bottom.visibility = View.VISIBLE
+                navHost.setPadding(0, 0, 0, bars.bottom)
+                refresh.setPadding(0, 0, 0, 0)
+            }
             insets
         }
         wireChrome()
         requestNotificationPermission()
         setupWebView()
+        bottom.selectedItemId = R.id.tab_chart
+        moveTick(1)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (webView.canGoBack()) webView.goBack() else finish()
+                webView.evaluateJavascript(
+                    "!!document.querySelector('.modal-search,.alerts-modal,.modal-indicators," +
+                        ".lay-menu,.tb-menu:not([hidden]),section.script-panel:not([hidden])')",
+                ) { open ->
+                    if (open == "true") {
+                        sendKey(KeyEvent.KEYCODE_ESCAPE, alt = false)
+                    } else if (webView.canGoBack()) {
+                        webView.goBack()
+                    } else {
+                        finish()
+                    }
+                }
             }
         })
     }
@@ -100,6 +121,8 @@ class MainActivity : ComponentActivity() {
         }
         refresh.setColorSchemeColors(ContextCompat.getColor(this, R.color.kandle_accent))
         refresh.setOnRefreshListener { webView.reload() }
+        // The chart owns vertical drags; reload lives in the Menu sheet.
+        refresh.isEnabled = false
     }
 
     private val assetLoader by lazy {
@@ -118,9 +141,10 @@ class MainActivity : ComponentActivity() {
             mediaPlaybackRequiresUserGesture = false
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             cacheMode = WebSettings.LOAD_DEFAULT
-            setSupportZoom(false)
-            builtInZoomControls = false
+            setSupportZoom(true)
+            builtInZoomControls = true
             displayZoomControls = false
+            textZoom = (100 * resources.configuration.fontScale).toInt()
         }
         CookieManager.getInstance().setAcceptCookie(true)
         webView.addJavascriptInterface(NativeBridge(), "AndroidNative")
@@ -149,6 +173,16 @@ class MainActivity : ComponentActivity() {
                 refresh.isRefreshing = false
             }
 
+            override fun onReceivedHttpError(
+                view: WebView,
+                request: WebResourceRequest,
+                errorResponse: WebResourceResponse,
+            ) {
+                if (request.isForMainFrame) {
+                    showError("HTTP ${errorResponse.statusCode}")
+                }
+            }
+
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (request.isForMainFrame) {
                     progress.visibility = View.GONE
@@ -158,17 +192,16 @@ class MainActivity : ComponentActivity() {
             }
 
             override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
-                (view.parent as? android.view.ViewGroup)?.removeView(view)
-                view.destroy()
-                webView = WebView(this@MainActivity)
-                refresh.addView(
-                    webView,
-                    android.view.ViewGroup.LayoutParams(
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                    ),
-                )
-                setupWebView()
+                fileCallback?.onReceiveValue(null)
+                fileCallback = null
+                progress.visibility = View.GONE
+                refresh.isRefreshing = false
+                Toast.makeText(
+                    this@MainActivity,
+                    "Chart engine restarted — unsaved work may be lost",
+                    Toast.LENGTH_LONG,
+                ).show()
+                recreateWebView()
                 return true
             }
         }
@@ -252,6 +285,14 @@ class MainActivity : ComponentActivity() {
 
     private fun js(code: String) = webView.evaluateJavascript(code, null)
 
+    private fun jsWithFeedback(code: String, failureMessage: String) {
+        webView.evaluateJavascript(code) { result ->
+            if (result != "true") {
+                Toast.makeText(this, failureMessage, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun sendKey(keyCode: Int, alt: Boolean) {
         val meta = if (alt) KeyEvent.META_ALT_ON else 0
         webView.requestFocus()
@@ -266,9 +307,26 @@ class MainActivity : ComponentActivity() {
 
     private fun shareCurrent() {
         js(
-            "(function(){try{Promise.resolve(window.kandle && window.kandle.share ? window.kandle.share() : location.href)" +
-                ".then(function(u){AndroidNative.share(u||location.href);});}catch(e){AndroidNative.share(location.href);}})()",
+            "(function(){var fallback='https://kernel-hunter.github.io/kandle/';" +
+                "function done(u){AndroidNative.share(u||fallback);}" +
+                "try{if(window.kandle&&window.kandle.share){Promise.resolve(window.kandle.share()).then(done)" +
+                ".catch(function(){done(fallback);});}else{done(fallback);}}catch(e){done(fallback);}})()",
         )
+    }
+
+    private fun recreateWebView() {
+        (webView.parent as? android.view.ViewGroup)?.removeView(webView)
+        webView.stopLoading()
+        webView.destroy()
+        webView = WebView(this)
+        refresh.addView(
+            webView,
+            android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        setupWebView()
     }
 
     private fun handleTab(itemId: Int) {
@@ -277,9 +335,15 @@ class MainActivity : ComponentActivity() {
                 sendKey(KeyEvent.KEYCODE_ESCAPE, alt = false)
                 js("window.scrollTo(0, 0)")
             }
-            R.id.tab_watchlist -> js("window.kandle && window.kandle.watchlist.toggle(true)")
-            R.id.tab_scripts -> js(
-                "document.querySelector('button[title^=\"Script editor\"]')?.click()",
+            R.id.tab_watchlist -> jsWithFeedback(
+                "(function(){try{if(!window.kandle||!window.kandle.watchlist)return false;" +
+                    "window.kandle.watchlist.toggle(true);return true;}catch(e){return false;}})()",
+                "Watchlist is not ready yet",
+            )
+            R.id.tab_scripts -> jsWithFeedback(
+                "(function(){var b=document.querySelector('button[title^=\"Script editor\"]');" +
+                    "if(!b)return false;b.click();return true;})()",
+                "Script editor is not available",
             )
             R.id.tab_explore -> js("document.querySelector('.symbol-btn') && document.querySelector('.symbol-btn').click()")
             R.id.tab_more -> showMore()
@@ -306,7 +370,7 @@ class MainActivity : ComponentActivity() {
         val panel = if (light) 0xFFF7F8FA.toInt() else 0xFF151920.toInt()
         val border = if (light) 0xFFE1E4E9.toInt() else 0xFF252B34.toInt()
         val text = if (light) 0xFF69717C.toInt() else 0xFF8A929E.toInt()
-        val accent = if (light) 0xFF7A4E00.toInt() else 0xFFF0B45C.toInt()
+        val accent = if (light) 0xFF1A6FE0.toInt() else 0xFF2F80ED.toInt()
 
         findViewById<View>(R.id.root).setBackgroundColor(bg)
         statusSpacer.setBackgroundColor(panel)
@@ -354,7 +418,7 @@ class MainActivity : ComponentActivity() {
                     0 -> webView.reload()
                     1 -> shareCurrent()
                     2 -> openExternal("https://kernel-hunter.github.io/kandle/")
-                    3 -> sendKey(KeyEvent.KEYCODE_L, alt = true)
+                    3 -> js("document.querySelector('button[title^=\"Toggle theme\"]')?.click()")
                     4 -> clearCache()
                     5 -> showAbout()
                 }
@@ -367,7 +431,7 @@ class MainActivity : ComponentActivity() {
             .setTitle(R.string.error_title)
             .setMessage(if (message.isBlank()) getString(R.string.error_body) else message)
             .setCancelable(false)
-            .setPositiveButton(R.string.retry) { _, _ -> setupWebView() }
+            .setPositiveButton(R.string.retry) { _, _ -> recreateWebView() }
             .setNegativeButton(R.string.close) { _, _ -> finish() }
             .show()
     }
@@ -379,6 +443,23 @@ class MainActivity : ComponentActivity() {
         ) {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    override fun onPause() {
+        webView.onPause()
+        super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        webView.onResume()
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        moveTick(bottom.selectedItemId.let { id ->
+            (0 until bottom.menu.size()).indexOfFirst { bottom.menu.getItem(it).itemId == id }
+        })
     }
 
     override fun onDestroy() {
@@ -401,6 +482,11 @@ class MainActivity : ComponentActivity() {
         fun canNotify(): Boolean = Notifications.enabled(this@MainActivity)
 
         @android.webkit.JavascriptInterface
+        fun requestNotifyPermission() {
+            runOnUiThread { requestNotificationPermission() }
+        }
+
+        @android.webkit.JavascriptInterface
         fun theme(theme: String) {
             runOnUiThread { applyTheme(theme) }
         }
@@ -412,7 +498,12 @@ class MainActivity : ComponentActivity() {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_TEXT, url)
                 }
-                startActivity(Intent.createChooser(intent, getString(R.string.share_chart)))
+                runCatching {
+                    startActivity(Intent.createChooser(intent, getString(R.string.share_chart)))
+                }.onFailure {
+                    android.util.Log.e("Kandle", "share failed", it)
+                    Toast.makeText(this@MainActivity, "No app to share with", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

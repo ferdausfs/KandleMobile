@@ -32,11 +32,13 @@
             android:id="@+id/webview"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/kandle_bg" />
+            android:background="@color/kandle_bg"
+            android:filterTouchesWhenObscured="true" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <FrameLayout
         android:id="@+id/nav_host"
+        android:filterTouchesWhenObscured="true"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/kandle_panel">

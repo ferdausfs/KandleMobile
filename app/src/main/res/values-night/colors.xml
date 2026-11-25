@@ -6,10 +6,10 @@
     <color name="kandle_border">#252B34</color>
     <color name="kandle_text">#D8DCE2</color>
     <color name="kandle_muted">#8A929E</color>
-    <color name="kandle_accent">#F0B45C</color>
-    <color name="kandle_on_accent">#1A1204</color>
-    <color name="kandle_accent_soft">#1FF0B45C</color>
+    <color name="kandle_accent">#2F80ED</color>
+    <color name="kandle_on_accent">#FFFFFF</color>
+    <color name="kandle_accent_soft">#1F2F80ED</color>
     <color name="kandle_danger">#F23645</color>
     <color name="kandle_nav">#8A929E</color>
-    <color name="kandle_nav_selected">#F0B45C</color>
+    <color name="kandle_nav_selected">#2F80ED</color>
 </resources>

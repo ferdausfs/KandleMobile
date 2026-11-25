@@ -14,9 +14,21 @@
   }
 
   NativeNotification.prototype.close = function () {};
-  NativeNotification.permission =
-    typeof bridge.canNotify === 'function' && bridge.canNotify() ? 'granted' : 'denied';
+  Object.defineProperty(NativeNotification, 'permission', {
+    get: function () {
+      try {
+        return typeof bridge.canNotify === 'function' && bridge.canNotify() ? 'granted' : 'denied';
+      } catch (e) {
+        return 'denied';
+      }
+    },
+  });
   NativeNotification.requestPermission = function (callback) {
+    try {
+      if (typeof bridge.requestNotifyPermission === 'function') bridge.requestNotifyPermission();
+    } catch (e) {
+      /* permission dialog unavailable */
+    }
     var state = NativeNotification.permission;
     if (typeof callback === 'function') callback(state);
     return Promise.resolve(state);

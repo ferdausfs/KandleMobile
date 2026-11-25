@@ -57,6 +57,15 @@ jobs:
         if: env.KEYSTORE_B64 != ''
         run: ./gradlew --no-daemon assembleRelease
 
+      - name: Verify release APK is signed
+        if: env.KEYSTORE_B64 != ''
+        run: |
+          set -e
+          APK=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          test -s "$APK"
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BUILD_TOOLS/apksigner" verify --print-certs "$APK"
+
       - name: Upload release APK
         if: env.KEYSTORE_B64 != ''
         uses: actions/upload-artifact@v4
