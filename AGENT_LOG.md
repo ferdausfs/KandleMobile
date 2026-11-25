@@ -4,6 +4,35 @@ Newest first. Never delete an entry.
 
 ---
 
+## 2026-11-25 — full audit round (3 agents + craft-anything)
+
+- **Agents:** code-modernization-security-auditor, pr-review-toolkit-silent-failure-hunter, general (UX/a11y/perf).
+  Plus a headless-Chromium probe of the bundled page and `craft-anything android-package-show --deep`.
+- **Verified facts:** `window.kandle` exposes 23 methods; `watchlist.toggle(true)`, the Script editor button and
+  `.symbol-btn` search all work (probe returned true/true/true, zero console errors). Kandle's own tokens are
+  `--bg #0f1115`, `--panel #151920`, `--accent #2f80ed` — native accent switched from ember to that blue so the
+  chrome and the page read as one surface. CSP (`default-src 'self'; script-src 'self'; connect-src https: wss:`)
+  was added to the bundled `index.html` and the page still boots with all 23 API keys.
+- **Security fixes:** private lock-screen notifications (new `kandle_alerts_v2` channel, public version,
+  `localOnly`), `taskAffinity=""`, `filterTouchesWhenObscured` on the WebView and nav, CSP, CI step that verifies
+  the release APK is signed. P0 security findings: none. Remaining hardening (web-message listener instead of
+  `addJavascriptInterface`, asset-handler narrowing, pinned action SHAs) is logged as P2.
+- **Silent-failure fixes:** renderer-death now resets the file callback/progress and tells the user; share falls
+  back to the canonical Kandle URL instead of the local asset URL; retry recreates the WebView; notification
+  permission is read live and can be requested from the page; tab actions report failure; blocked URL schemes are
+  no longer silently swallowed.
+- **UX fixes:** Chart tab is selected on launch (was Watchlist while showing the chart); IME insets hide the bottom
+  bar and pad the WebView so the script editor stays visible; pull-to-refresh disabled (it stole chart drags; reload
+  lives in Menu); back closes open modals before navigating history; theme toggle uses the web control; WebView
+  pauses/resumes with the activity; font scale feeds `textZoom`.
+- **Verification:** `assembleDebug`, `testDebugUnitTest`, `assembleRelease` green; APK v5 signed
+  (`4e25a7dd…2a8e2`); craft-anything deep scan clean (4 permissions, backup off, cleartext off, v2 signed).
+- **Release:** `v0.11.0-android.5` — `kandle-android5.apk`.
+- **Limits:** no `/dev/kvm`/ADB device on the server, so native chrome is still not exercised on a real device;
+  web layer is covered by the probe and upstream tests.
+
+---
+
 ## 2026-11-25 — native chrome v1 + audit fixes
 
 - **Agent / tool:** OpenCode Android agent; `dev-server` for Gradle, git, craft-anything and headless Chromium.
