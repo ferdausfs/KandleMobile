@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var navHost: FrameLayout
     private lateinit var navTick: View
     private var fileCallback: ValueCallback<Array<Uri>>? = null
+    private var immersive = false
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         fileCallback?.onReceiveValue(uri?.let { arrayOf(it) } ?: emptyArray())
@@ -75,12 +76,15 @@ class MainActivity : ComponentActivity() {
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             statusSpacer.layoutParams.height = bars.top
             statusSpacer.requestLayout()
+            val landscape = resources.configuration.orientation ==
+                android.content.res.Configuration.ORIENTATION_LANDSCAPE
             if (ime.bottom > 0) {
                 bottom.visibility = View.GONE
                 navHost.setPadding(0, 0, 0, 0)
                 refresh.setPadding(0, 0, 0, ime.bottom)
             } else {
-                bottom.visibility = View.VISIBLE
+                bottom.visibility = if (immersive || landscape) View.GONE else View.VISIBLE
+                navHost.visibility = if (immersive || landscape) View.GONE else View.VISIBLE
                 navHost.setPadding(0, 0, 0, bars.bottom)
                 refresh.setPadding(0, 0, 0, 0)
             }
@@ -91,8 +95,14 @@ class MainActivity : ComponentActivity() {
         setupWebView()
         bottom.selectedItemId = R.id.tab_chart
         moveTick(1)
+        updateChromeVisibility()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                if (immersive) {
+                    immersive = false
+                    updateChromeVisibility()
+                    return
+                }
                 webView.evaluateJavascript(
                     "!!document.querySelector('.modal-search,.alerts-modal,.modal-indicators," +
                         ".lay-menu,.tb-menu:not([hidden]),section.script-panel:not([hidden])')",
@@ -410,7 +420,15 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showMore() {
-        val items = arrayOf("Reload", "Share chart", "Open in browser", "Light / dark theme", "Clear cache", "About")
+        val items = arrayOf(
+            "Reload",
+            "Share chart",
+            "Open in browser",
+            "Light / dark theme",
+            "Full screen chart",
+            "Clear cache",
+            "About",
+        )
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.more_title)
             .setItems(items) { _, which ->
@@ -419,8 +437,12 @@ class MainActivity : ComponentActivity() {
                     1 -> shareCurrent()
                     2 -> openExternal("https://kernel-hunter.github.io/kandle/")
                     3 -> js("document.querySelector('button[title^=\"Toggle theme\"]')?.click()")
-                    4 -> clearCache()
-                    5 -> showAbout()
+                    4 -> {
+                        immersive = !immersive
+                        updateChromeVisibility()
+                    }
+                    5 -> clearCache()
+                    6 -> showAbout()
                 }
             }
             .show()
@@ -460,6 +482,23 @@ class MainActivity : ComponentActivity() {
         moveTick(bottom.selectedItemId.let { id ->
             (0 until bottom.menu.size()).indexOfFirst { bottom.menu.getItem(it).itemId == id }
         })
+        updateChromeVisibility()
+    }
+
+    private fun updateChromeVisibility() {
+        val landscape = resources.configuration.orientation ==
+            android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        bottom.visibility = if (immersive || landscape) View.GONE else View.VISIBLE
+        navHost.visibility = if (immersive || landscape) View.GONE else View.VISIBLE
+        statusSpacer.visibility = if (immersive) View.GONE else View.VISIBLE
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        if (immersive) {
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        } else {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        }
     }
 
     override fun onDestroy() {
